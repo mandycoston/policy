@@ -1,0 +1,19 @@
+\section{Evaluation of Nonstationary Policies} \label{nonstationary}
+We can use our doubly robust estimator to estimate $\mathcal{S}$-specific value functions  on nonstationary (i.e. online) algorithms by adapting the rejection sampling approach of \cite{dudik2014doubly}. A nonstationary policy updates the policy based on the history. Formally, the nonstationary policy is $\pi(a_k |x_k, h_{k-1})$ where $h_{k-1} = (x_1, a_1, r_1), ...(x_{k-1}, a_{k-1}, r_{k-1})$ denotes the history up to $k-1$. Note that this target history is under the target policy, so in our offline evaluation setup, we do not observe this. However, we can simulate the target history using rejection sampling. As in \cite{dudik2014doubly} we assume perfect logging i.e. that our exploration policy is known. The exploration policy can be nonstationary or stationary; for generality we will use $\pi_{z,k}$ to denote the exploration policy at the time of observation of context $k$. This assumption is valid in a trial setting or for instance in applications where software engineers know the policy that shows news articles/ads/etc. Our goal is to estimate the value function on a subset $\mathcal{S}$ after T rounds of target history: 
+\begin{equation}
+    V_{1:N}(\pi, \mathcal{S}) = \mathbf{E}[\sum_{k=1}^N R_k]
+\end{equation}
+Assume we have set $\mathbf{S} = \{\mathcal{S}_1, ... \mathcal{S}_a \} $ of the $a$ subgroups for which we want to compute $\mathcal{S}_a$-specific effect. We have to run the simulation procedure only once, regardless of the size of $\mathbf{S}$. The algorithm proceeds exactly as Algorithm 1 of  \cite{dudik2014doubly} except that we modify steps 1-2:
+
+For our observed history $k=1,2...N$ 
+\begin{itemize}
+    \item for each $\mathcal{S}_a \in \mathbf{S}$,
+    \begin{itemize}
+        \item if $x_k \in \mathcal{S}_a$,
+        \begin{itemize}
+            \item Update $\hat{V}(\mathcal{S}_a) \leftarrow \hat{V}(\mathcal{S}_a) + c_t \hat{V}_k$, \\
+            where $\hat{V}_k = \hat{r}(x_k, \pi_t) + \frac{\pi_t(a_k|x_k)}{\pi_{z,k}(a_k |x_k)} (r_k - \hat{r}(x_k, a_k))$ and $c_t$ is a multiplier of the acceptance rate as updated in 6d of Algorithm 1 in \cite{dudik2014doubly}.
+        \end{itemize}
+    \end{itemize}
+    \item Do steps 3-6 of Algorithm 1 in \cite{dudik2014doubly}.
+\end{itemize}

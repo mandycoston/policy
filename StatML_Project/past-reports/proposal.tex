@@ -1,0 +1,55 @@
+\documentclass{article}
+
+\usepackage[final]{nips_2017}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage[ruled,linesnumbered]{algorithm2e} % algorithms
+\usepackage[]{amsmath}
+\usepackage{graphicx}
+
+\usepackage{blindtext}
+
+\title{Causal Bandits: Bridging the Gap between Regret and Heterogeneous Treatment Effects}
+
+\author{
+  Amanda Coston \quad Le-Qi Liu\\
+  Machine Learning Department\\
+  Carnegie Mellon University\\
+  Pittsburgh, PA 15213 \\
+  \texttt{\{acoston, leqil\}@cs.cmu.edu} \\
+}
+
+\begin{document}
+\maketitle
+
+
+\section{Introduction}
+In many situations where we have the task of choosing one of two or more potential actions, we want to understand the difference in payoffs between potential actions. In the causal inference literature, this is often referred to as treatment effect--i.e. the outcome difference when taking the treatment versus the control. Heterogeneous treatment effect (also referred to as individual treatment effect) considers the treatment effect for a particular individual as described by a set of features/covariates.  Reinforcement literature concerns itself with regret, the difference at a certain time  between the optimal action and the action chosen by the agent. There has been recent interest at the intersection of reinforcement learning and causal inference, but this work has focused largely on using causal models to improve regret guarantees. The goal of our paper is to bridge the divide between the concept of regret and of  treatment effect.  To that end, we will review seminal papers in estimating treatment effect and in causal bandits, and we will attempt to bridge the divide by connecting the concept of regret to heterogeneous treatment effect and by noting significant theoretical and/or practical differences, with a focus on the difference in theoretical guarantees. 
+
+\cite{lattimore2016causal} find that incorporating a causal model into the bandit framework achieves a stricter bound on regret, and \cite{bareinboim2015bandits} prove that this is necessary to achieve optimal regret in the presence of unobserved confounders. \cite{zhang2017transfer} show that using a causal model to transfer knowledge across bandit agents improves the efficiency and rates of convergence compared to non-causal bandit approaches.
+
+\cite{wager2017estimation}  discuss nonparametric causal forest for estimating heterogeneous treatment effect, which has pointwise consistency to the true treatment effect. \cite{athey2016recursive} propose methods to not just estimate heterogeneity in causal effects but conduct hypothesis tests about the magnitude of the differences in treatment effects across subsets of the data. It also address the challenge that the true causal effect is never observed for any individual unit and a modification of standard cross-validation is needed.
+
+%transfer learning
+%A good introduction and overview of background material, typically covering 2-4 peer-reviewed papers.
+%A description of why the problem you chose to study is interesting/important/challenging.
+
+
+
+\section{Plan}
+
+The three major components of our project are 1) understand literature on casual bandits, 2) understand literature on heterogeneous treatment effect, and 3) produce an analysis that effectively compares the two concepts. We will start with bandits, including contextual bandits, and continue to review the few papers on causal bandits. We would like to finish reading and fully understand them by the second milestone. It would be ideal if we could identify and study a good literature review on estimating heterogeneous treatment effect by that time. To achieve 3), we will identify the difference in formulation and in theoretical guarantees between regret in causal bandits and heterogeneous treatment effect. Our final paper should discuss the key contributions of 1) and 2) by comparing and bridging the gap between the two. The list of papers we plan to read includes \cite{dudik2011efficient}, \cite{lattimore2016causal}, \cite{shalit2017estimating}, \cite{forney2017counterfactual}, \cite{zhang2017transfer}, \cite{athey2016recursive}, \cite{bareinboim2015bandits}, \cite{wager2017estimation},
+\cite{johansson2016learning}.
+
+
+
+\bibliographystyle{plain}
+\bibliography{citations}
+\end{document}

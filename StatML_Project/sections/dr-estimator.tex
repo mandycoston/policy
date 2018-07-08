@@ -1,0 +1,151 @@
+\section{Doubly Robust Estimator for $\mathcal{S}$-specific Value Functions} \label{drest}
+%\textcolor{red}{Mention assumptions here}
+
+In this analysis for simplicity we assume that we are evaluating a new stationary policy. In section \ref{nonstationary} we extend this to the nonstationary policy setting. Let $\pi$ denote our new target policy and $\pi_z$ denote the historical policy for which we have observations. We want to estimate the value function $V(\pi, \mathcal{S})$ of a new policy $\pi$ on contexts $x$ that are in a subset $\mathcal{S}$ of $\mathcal{X}$. Formally, we want to estimate
+\begin{eqnarray*}
+ V(\pi, \mathcal{S}) &=& \mathbf{E}_{X_\mathcal{S}} \mathbf{E}_{A}\mathbf{E}_{R} [R]\\
+ &=& \mathbf{E}_{X_\mathcal{S}} \left[ \sum_{a \in \mathcal{A}} \pi(a|x) \mathbf{E}_{R}[R|X_\mathcal{S} = x,A=a] \right]\\
+ &=& \mathbf{E}_{X_\mathcal{S}} \left[ \sum_{a \in \mathcal{A}} \pi(a|x) r(x, a)  \right].
+\end{eqnarray*}
+
+where $X_{\mathcal{S}}$ denotes a context in $\mathcal{S}$ (for example, if $\mathcal{S}$ denotes females, then $X_{\mathcal{S}}$ must be a woman), $A$ denotes the action chosen according to the context $X_{\mathcal{S}}$ under policy $\pi$ and $R$ is the obtained reward.  %make sure we've defined other terms like A in previous section
+
+The proposed estimator is 
+\begin{align*} 
+\widehat{V}_{DR}(\pi, \mathcal{S}) = &\frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \sum_{k=1}^{N } \mathbb{I}{\{x_k \in \mathcal{S} \}} \\
+&\times \left[\sum_{a \in \mathcal{A}} \pi(a|x_k)\hat{r}(x_k, a) + \sum_{a \in \mathcal{A}} \mathbb{I}_{\{A_k = a\}}\frac{\pi(a|x_k)}{\hat{\pi}_{z}(a|x_k)} \cdot (r(x_k, a) - \hat{r}(x_k, a)) \right]
+ \end{align*}%.$$%\widehat{V}_{DR}
+where ${\{x_k, a_k, r(x_k, a_k)\}}_{k=1}^N$ are the history contexts, actions and rewards such that $r(x_k, a_k) = r_k$. The random variable $A_k$ denotes the action assigned in history at time $k$. $\hat{\pi}_z(a|x_k)$ is the estimator of $\mathbf{E}[\mathbb{P}(A_k=a|X_k = x_k)]$ and $\hat{r}(x_k, a)$ is the estimator of $\mathbf{E}[R|X=x, A=a]$.
+
+
+The following analysis is done under certain causal assumptions:
+\begin{enumerate}
+    \item Modified positivity requirement: If for any $x_k \in \mathcal{S}$, $\pi(a|x_k) > 0$, then $\pi_z(a|x_k) > 0$ 
+    %ii) consistency: If we assign context $k$ action $a_k$, then the reward $r_k$ observed is the reward for context $k$ under $a_k$ (i.e. we assume no interference between contexts);
+    \item  Exchangeability: The measured covariates completely determine the context's probability of a given action (i.e. no unmeasured factors influence the assignment mechanism)
+\end{enumerate}
+
+
+\begin{theorem}
+For any $x_k \in \mathcal{S}$, if $\mathbf{E}[\widehat{r}(x_k,a)] = \mathbf{E}[r(x_k,a)]$ or $\mathbf{E}[\hat{\pi}_{z}(a|x_k)] = \pi_{z}(a|x_k)$, then  $$\mathbf{E}_{(X, A, R) \sim D}[\widehat{V}(\pi, \mathcal{S})] = V(\pi, \mathcal{S}).$$
+\end{theorem}
+
+\begin{proof}
+For any $x_k \in \mathcal{S}$, if $\mathbf{E}[\widehat{r}(x_k,a)] = \mathbf{E}[r(x_k,a)]$, then:
+
+\begin{eqnarray*}
+\mathbf{E}_{(X, A, R) \sim D}[\widehat{V}(\pi, \mathcal{S})] &=&    \mathbf{E}_{X_\mathcal{S}}\Bigg[\sum_{a \in \mathcal{A}} \pi(a|x_k)\mathbf{E}[\hat{r}(x_k, a)] + \sum_{a \in \mathcal{A}} \mathbf{E}\bigg[ 
+\mathbb{I}_{\{A_k = a\}}\frac{\pi(a|x_k)}{\hat{\pi}_{z}(a|x_k)} \\
+&\times&  (r(x_k, a) - \mathbf{E}[\hat{r}(x_k, a)]) \bigg] \Bigg] = \mathbf{E}_{X_\mathcal{S}}\left[\sum_{a \in A} \pi(a|x_k) r(x_k, a)\right]\\
+&=& V(\pi, \mathcal{S}).
+\end{eqnarray*}
+On the other hand, if $\mathbf{E}[\hat{\pi}_{z}(a|x_k)] = \pi_{z}(a|x_k)$, then:
+\begin{eqnarray*}
+\mathbf{E}_{(X, A, R) \sim D}[\widehat{V}(\pi, \mathcal{S})] &=&  \mathbf{E}_{X_\mathcal{S}}\Bigg[\sum_{a \in A} \pi(a|x_k) \mathbf{E}[\hat{r}(x_k, a)] + \mathbf{E} \bigg[  (r(x_k, a) - \hat{r}(x_k, a))   \\
+& & \sum_{a \in A} \frac{\pi(a|x_k)}{\hat{\pi}_{z}(a|x_k)} \mathbf{E} \left[ \mathbb{I}_{\{A_k =a\}}\right]\bigg] \Bigg]\\
+&=& \mathbf{E}_{X_\mathcal{S}}\left[ \sum_{a \in A} \pi(a|x_k) \mathbf{E}[\hat{r}(x_k, a)] + \sum_{a \in A}   \pi(a|x_k) \mathbf{E} \left[ r(x_k, a) - \hat{r}(x_k, a)\right] \right]\\
+&=& \mathbf{E}_{X_\mathcal{S}}\left[\sum_{a \in A}   \pi(a|x_k) r(x_k, a)  \right]\\
+&=& V(\pi, \mathcal{S}).
+\end{eqnarray*}
+\end{proof}
+
+\begin{corollary}
+In a parametric setting, $\widehat{V}(\pi, \mathcal{S})$ is consistent if the parametric form is correctly specified for either $r(x_k,a)$ or $ \pi_{z}(a|x_k)$ (i.e. one of the nuisance functions can be mispecified).
+\end{corollary}
+
+
+\begin{definition}
+Let $\mathbf{P}[\widehat{f}(X)]$ denote $\mathbf{E}[\widehat{f}(X) |D^n]$ where  $D^n$ is the sample used to construct the random function $\hat{f}$. %Then the only randomness in $\mathbf{P}[\widehat{f}(X)]$ is over the input X.
+\end{definition}
+
+\begin{definition}
+Define $\mathbb{L}_2(\mathbf{P})$ norm to be $||\hat{f} ||_{\mathbf{P}}=\sqrt{\mathbf{P}(\hat{f}^2)}$.
+\end{definition}
+
+\begin{theorem}
+For all $x_k \in \mathcal{S}$ and $a \in \mathcal{A}$, if $||\mathbf{E}[r(x_k, a)] - \hat{r}(x_k, a)||_{\mathbf{P}} = o_p(n^{-\frac{1}{4}})$,
+\\ $||\pi_z(x_k, a) - \hat{\pi}_z(x_k, a)||_{\mathbf{P}} = o_p(n^{-\frac{1}{4}})$ and $\frac{\pi(a|x_k)}{\hat{\pi}_z(a|x_k)} <  C$ for some constant C, then $\widehat{V}(\pi, \mathcal{S})$ is $\sqrt{n}$ consistent and asymptotically normal. Note that from our positivity requirement (causal assumption 1), the requirement that $\frac{\pi(a|x_k)}{\hat{\pi}_z(a|x_k)}$ be bounded is mild.
+\end{theorem}
+
+
+\begin{proof}
+We first define the following two quantities for all $x_k \in \mathcal{S}$:
+$$\phi(\pi, x_k) = \sum_{a \in \mathcal{A}} \pi(a|x_k) r(x_k, a)$$ where $\phi(\pi, x_k)$ does not depend on the sample histories, and  $$\widehat{\phi}(\pi, x_k) = \mathbb{I}{\{x_k \in \mathcal{S} \}} \times \left(\sum_{a \in \mathcal{A}} \pi(a|x_k)\hat{r}(x_k, a) + \sum_{a \in \mathcal{A}} \mathbb{I}_{\{A_k = a\}}\frac{\pi(a|x_k)}{\hat{\pi}_{z}(a|x_k)} \cdot (r(x_k, a) - \hat{r}(x_k, a)) \right).$$
+
+Note that $V(\pi, \mathcal{S}) = \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) \right]$ and 
+$\widehat{V}(\pi, \mathcal{S})  = \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \sum_{k=1}^{N } \mathbb{I}{\{x_k \in \mathcal{S} \}} \widehat{\phi}(\pi, x_k)$.
+
+We want to show $\widehat{V}(\pi, \mathcal{S}) - V(\pi, \mathcal{S}) = O_p(\frac{1}{\sqrt{n}})$. We have
+\begin{align}
+\widehat{V}(\pi, \mathcal{S}) - V(\pi, \mathcal{S}) &= \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \sum_{k=1}^{N } \mathbb{I}{\{x_k \in \mathcal{S} \}} \widehat{\phi}(\pi, x_k) - \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) \right] \nonumber \\
+&= \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \sum_{k=1}^{N } \mathbb{I}{\{x_k \in \mathcal{S} \}} \widehat{\phi} (\pi, x_k) - \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) \right]  \nonumber \\
+&+ \mathbf{P}_{X_\mathcal{S}} \left[ \widehat{\phi}(\pi, x_k) \right] - \mathbf{P}_{X_\mathcal{S}} \left[ \widehat{\phi}(\pi, x_k) \right] \nonumber \\
+&+ \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) \right] - \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \sum_{k=1}^{N } \mathbb{I}{\{x_k \in \mathcal{S} \}} \phi(\pi, x_k)   \nonumber \\
+&+\frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \sum_{k=1}^{N } \mathbb{I}{\{x_k \in \mathcal{S} \}} \phi(\pi, x_k)  - \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) \right] \nonumber \\
+&= \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \sum_{k=1}^{N } \mathbb{I}{\{x_k \in \mathcal{S} \}} \phi(\pi, x_k)  - \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) \right] \label{eq1}\\
+&+ \mathbf{P}_{X_\mathcal{S}} \left[ \widehat{\phi}(\pi, x_k) \right] - \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) \right]  \label{eq2}\\
+&+ \mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) - \widehat{\phi}(\pi, x_k) \right] - \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  \nonumber  \\
+&\times \sum_{k=1}^{N }\mathbb{I}{\{x_k \in \mathcal{S} \}} \left(\phi(\pi, x_k) - \widehat{\phi} (\pi, x_k) \right)\label{eq3}
+\end{align}
+
+\eqref{eq1} can be directly bounded using Central Limit Theorem, which suggests that \eqref{eq1} is asymptotically normal and  $O_p(\frac{1}{\sqrt{n}})$. \eqref{eq2} will be analyzed in lemma \ref{core-lemma}: under the condition that the nuisance functions are of $o_p(n^{-\frac{1}{4}})$ with respect to their true value, \eqref{eq2} is $o_p(\frac{1}{\sqrt{n}})$. \eqref{eq3} are $o_p(n^{-\frac{1}{4}})$ under smoothness assumptions on $\phi$ \cite{van2000asymptotic} or under sample-splitting \cite{kennedy2018sharp}: see lemmas \ref{vandervaart} and \ref{kennedy} below. 
+\end{proof}
+
+
+
+\begin{lemma} \label{core-lemma}
+For all $x_k \in \mathcal{S}$ and $a \in \mathcal{A}$, if $||\mathbf{E}[r(x_k, a)] - \hat{r}(x_k, a)||_{\mathbf{P}} = o_p(n^{-\frac{1}{4}})$,
+\\ $||\pi_z(x_k, a) - \hat{\pi}_z(x_k, a)||_{\mathbf{P}} = o_p(n^{-\frac{1}{4}})$ and $\frac{\pi(a|x_k)}{\hat{\pi}_z(a|x_k)} <  C$ for some constant C, then
+$$\mathbf{P}[\widehat{V}(\pi, \mathcal{S})] - V(\pi, \mathcal{S}) = o_p(\frac{1}{\sqrt{n}}).$$
+\end{lemma}
+
+\begin{proof}
+%$$\mathbb{P}\left( \mathbf{E}_{(x_k, a_k, r_k) \sim D}[\widehat{g}(\pi, \mathcal{V}) (x)] - g(\pi,\mathcal{V})(x) \right) \to 0.$$
+\begin{eqnarray*}
+\mathbf{P}[\widehat{V}(\pi, \mathcal{S})]  &-& V(\pi, \mathcal{S})\\ 
+ &=& \mathbf{P}\left[\sum_{a \in A} \pi(a|x_k) \hat{r}(x_k, a) +   (r(x_k, a) - \hat{r}(x_k, a))   \sum_{a \in A} \frac{\pi(a|x_k)}{\hat{\pi}_{z}(a|x_k)}  \mathbb{I}_{\{A_k =a\}} \right] \\
+ &-& \mathbf{P} \left[ \sum_{a \in \mathcal{A}} \pi(a|x_k) r(x_k, a)  \right] \\
+ &=& \mathbf{P} \left[  \sum_{a \in \mathcal{A}} \pi(a|x_k) \left[ \hat{r}(x_k, a) - \mathbf{E}[r(x_k,a)] +    \frac{\pi_z(a|x_k)}{\hat{\pi}_{z}(a|x_k)} (\mathbf{E}[r(x_k, a)] - \hat{r}(x_k, a))  \right] \right]\\
+ &=& \mathbf{P} \left[  \sum_{a \in \mathcal{A}} \pi(a|x_k)    \frac{(\mathbf{E}[r(x_k, a)] - \hat{r}(x_k, a)) (\pi_z(a| x_k) - \hat{\pi}_z(a| x_k))}{\hat{\pi}_z(a| x_k)}
+ \right]\\
+ &=& o_p(\frac{1}{\sqrt{n}})
+\end{eqnarray*}
+
+
+where the second equality follows from iterated expectation and the final equality follows from our conditions that $\frac{\pi(a|x_k)}{\hat{\pi}_z(a|x_k)} <  C$ for some constant C, and
+$||\mathbf{E}[r(x_k, a)] - \hat{r}(x_k, a)||_{\mathbf{P}} = o_p(n^{-\frac{1}{4}})$,
+\\ $||\pi_z(x_k, a) - \hat{\pi}_z(x_k, a)||_{\mathbf{P}}= o_p(n^{-\frac{1}{4}})$ for all $x_k \in \mathcal{S}$ and $a \in \mathcal{A}$.
+
+\end{proof}
+
+We note we can satisfy these conditions on the nuisance functions using nonparametric techniques if for example, we have a Holder class of functions $H(\beta, L)$ where $\beta \geq d/2$ since the Holder minimax rate is $n^{\frac{-\beta}{d+2\beta}}$; we can alternatively satisfy these conditions with sparsity assumptions on the nuisance functions (i.e. that there is an s-sparse basis expansion) or if we have a class of functions with bounded total variation.
+
+\begin{lemma} \label{vandervaart}
+(Van der Vaart) If the function class of $\phi$ is Donsker (e.g. Sobolev, Holder) then $\mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) - \widehat{\phi}(\pi, x_k) \right] - \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  
+\times \sum_{k=1}^{N }\mathbb{I}{\{x_k \in \mathcal{S} \}} \left(\phi(\pi, x_k) - \widehat{\phi} (\pi, x_k) \right) = o_p(\frac{1}{\sqrt{n}})$
+\end{lemma}
+\begin{proof}
+Proof outline: By the Donsker assumption, the empirical process converges in probability to a Gaussian process. By continuous mapping theorem, then we conclude the empirical process is $o_p(\frac{1}{\sqrt{n}})$. See Lemma 19.24 in \cite{van2000asymptotic} for more details.
+\end{proof}
+
+\begin{lemma} \label{kennedy}
+(Kennedy) Let the nuisance functions in $\hat{\phi}$ be estimated using a sample $D^n= z_1,.... z_k$ independent from the empirical measure which is taken over $z_{k+1}, ... z_N$. Then, if $|| \hat{\phi} - \phi||_{\mathbf{P}}$, we have that  $\mathbf{P}_{X_\mathcal{S}} \left[ \phi(\pi, x_k) - \widehat{\phi}(\pi, x_k) \right] - \frac{1}{\sum_{k=1}^N \mathbb{I}{\{x_k \in \mathcal{S} \}}}  
+\times \sum_{k=1}^{N }\mathbb{I}{\{x_k \in \mathcal{S} \}} \left(\phi(\pi, x_k) - \widehat{\phi} (\pi, x_k) \right) = o_p(\frac{1}{\sqrt{n}})$. See \cite{kennedy2018sharp} for proof details.
+\end{lemma}
+
+
+%Bias result: If (for any $x_k$ in history since we have the positivity assumption) $\mathbf{E}[\widehat{r}(x,a)] = r(x,a)$ or $\mathbf{E}[\hat{\pi}_{z}(a|x)] = \pi_{z}(a|x)$, then  $$\mathbf{E}_{(x_k, a_k, r_k) \sim D}[\widehat{g}(\pi, \mathcal{V})] = g(\pi, \mathcal{V}).$$
+
+%Consistency result: $$\mathbf{E}_{(x_k, a_k, r_k) \sim D}[\widehat{g}(\pi, \mathcal{V})] \overset{p}{\to} g(\pi,\mathcal{V}).$$
+
+
+
+
+
+
+
+%Or are actually proving (which is more close to the sum of three items format):$$ \widehat{\mathbf{E}}_{(x_k, a_k, r_k) \sim D}[\widehat{g}(\pi, \mathcal{V}) (x)]  \overset{p}{\to} g(\pi,\mathcal{V})(x)?$$
+
+%So, here, there's something off... what exactly should the expectation been taken for? I guess my problem is somehow related to how we deal with $\mathcal{V}.$ Maybe it's easier to just say $x_k$ instead of $\mathcal{V}$?
+
+%For any $x$, $$\widehat{g}(x) - g(x) = \widehat{g}(x) - \mathbf{E}[\widehat{g}(x)] + \mathbf{E}[\widehat{g}(x)] - g(x)$$ or are we proving : $$\widehat{\mathbf{E}}[\widehat{g}(x)] - \mathbf{E}[g(x)] = ?$$ But is the second term?

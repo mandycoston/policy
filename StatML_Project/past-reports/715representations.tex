@@ -1,0 +1,515 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+% \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading nips_2016
+%
+% to avoid loading the natbib package, add option nonatbib:
+% \usepackage[nonatbib]{nips_2016}
+
+\PassOptionsToPackage{square, numbers}{natbib}
+\usepackage[final]{nips_2017}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+% \usepackage[final]{nips_2016}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{graphicx}
+
+\usepackage{color}
+\newcommand{\Todo}[1]{{\color{red} TODO: #1}}
+
+
+\title{Project Proposal: Counterfactual Inference from Observational Data with Multiple Treatment Groups}
+
+% The \author macro works with any number of authors. There are two
+% commands used to separate the names and addresses of multiple
+% authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to
+% break the lines. Using \AND forces a line break at that point. So,
+% if LaTeX puts 3 of 4 authors names on the first line, and the last
+% on the second line, try using \AND instead of \And before the third
+% author name.
+
+\author{
+  Priya L. Donti \\
+  Computer Science Department \\
+  Department of Engineering and Public Policy \\
+  Carnegie Mellon University \\
+  \texttt{pdonti@andrew.cmu.edu} \\
+  \And
+  Liuyu Jin\\
+  Computer Science Department \\
+  Carnegie Mellon University \\
+  \texttt{liuyuj@andrew.cmu.edu} \\
+  \AND
+  Evren Gokcen\\
+  Department of Electrical and Computer Engineering \\
+  Center for the Neural Basis of Cognition\\
+  Carnegie Mellon University \\
+  \texttt{egokcen@andrew.cmu.edu} \\
+  \And
+  Amanda Coston \\
+  Machine Learning Department \\
+  Heinz School of Public Policy \\
+  Carnegie Mellon University \\
+  \texttt{acoston@andrew.cmu.edu} \\
+}
+
+
+\begin{document}
+% \nipsfinalcopy is no longer used
+
+\maketitle
+
+\section{Problem description}
+Many domains are concerned with understanding causal relationships.
+For instance, doctors often want to understand whether giving a patient a specific treatment reduces their risk of disease.
+In electricity, power system planners need to understand how changing electricity demand can reduce carbon dioxide emissions.
+There is thus a great need for models that can learn such causal relationships.
+
+While randomized control trials are a ``gold standard'' from which causal inferences can be drawn, such experiments are often expensive and time-intensive to run.
+Observational data, on the other hand, is more abundant.
+However, many modern machine learning algorithms are concerned with finding \emph{correlations} in observational data to make accurate predictions, and there remain many open questions in how to extract \emph{causal} information from this data. This limitation is particularly significant since most research questions in domains such as public policy and social/health sciences are of a causal nature, i.e. \emph{Did gun control legislation reduce the number of gun-related deaths?}
+
+Given the importance of this problem, much previous work has examined the question of how to extract causal relationships--i.e., do \emph{counterfactual inference}--on observational data.
+However, much of this work has examined the \emph{binary} setting in which there is a control and only one possible treatment, i.e., \emph{What is the difference between giving or not giving medication to a patient?}
+In this project, we investigate an extended problem in which there is more than one treatment group.
+For instance, assuming a patient received no medication, would they have lower blood sugar had they received 50mg or 100mg of medication?
+Or perhaps, given two potential changes in electricity demand, which would be most effective at reducing emissions compared to a do-nothing baseline?
+Extending counterfactual inference methods to non-binary treatments greatly expands the set of observational datasets that could be analyzed, and the set of scientific questions that we can investigate.
+Specifically, we focus on the case in which there are two possible treatments in addition to the control, with the long-term goal of generalizing to any (finite) number of treatments.
+
+
+\section{Related Work}
+There have been many proposed approaches to counterfactual inference.
+One approach involves using Bayesian nonparametric modeling to model a ``response surface'' for treatment effects \cite{hill2011bayesian, green2012modeling}.
+Another approach involves building forests of causal trees \cite{athey2016recursive, wager2017estimation}.
+The introduction of \cite{wager2017estimation} also cites many other methods for counterfactual inference, including lasso-like methods, transformation of outcomes from off-the-shelf machine learning procedures, and parametric/semi-parametric model estimation. 
+
+Our work is based on the central contributions of \cite{johansson2016learning} and its follow-up paper \cite{shalit2017estimating}, which build upon methods from deep learning, domain adaptation, and representation learning. 
+The two papers propose methods to solve the same problem, but there are significant differences in the assumptions, algorithms, and bounds that we explore below. 
+We decided to build upon this approach due to its theory-based algorithmic design (which, as far as we know, is unique within this body of literature), and its resultant strong theoretical guarantees.
+
+\section{Detailed Background and Notation}
+
+% The approach in \cite{johansson2016learning} involves learning a mapping from input-treatment pairs to outcomes to minimize an objective function encapsulating these three considerations. 
+
+As our work is strongly motivated by and builds on \cite{johansson2016learning} and \cite{shalit2017estimating}, we describe in some detail the notation and central ideas presented in these papers.
+
+Let $\mathcal{X}$ be the set of ``contexts;'' $\mathcal{T}$ be the set of potential treatments, including the control (in our setting, $|\mathcal{T}| = 3$); and $\mathcal{Y}$ be the set of outcomes.
+For instance, $\mathcal{X}$ might be the patients in a medical study (and their attributes), $\mathcal{T}$ the set of doses prescribed, and $\mathcal{Y}$ the resultant disease risk.
+In electricity, $\mathcal{X}$ could be the hours in a year, $\mathcal{T}$ the potential changes in electricity demand, and $\mathcal{Y}$ the resultant emissions. 
+For a context $x \in \mathcal{X}$ and intervention $t \in \mathcal{T}$, we then call $Y_t(x)$ the ``\emph{potential outcome} for $x$'' \cite{johansson2016learning} had $x$ been given treatment $t$.
+We seek to learn $Y_t(x)$ for all $t \in \mathcal{T}.$
+
+In \cite{johansson2016learning}, the authors pose the problem of counterfactual inference as one in which the observed data we are learning from is drawn from a distribution (the \emph{factual distribution} $P_{\Phi}^F$) different from the ``data'' we are trying to predict (which is drawn from a \emph{counterfactual distribution} $P_{\Phi}^{CF}$). \cite{johansson2016learning} thus frames the problem as one with three parts: (1) ensuring our model captures the distribution of the actual observed data, (2) encouraging ``similar'' outcomes for contexts that are ``similar'' but in different treatment groups in the observed data, and (3)  increasing the similarity (reducing the discrepancy) between the factual and counterfactual distributions.
+The authors propose a two-stage algorithm for learning a representation $\Phi$ of inputs that makes the control and treatment distributions more ``similar'' (as measured by their discrepancy), and then learning a hypothesis $h \in \mathcal{H}$ to optimize the three aforementioned objectives.
+More formally, the authors use a two-stage approach to learn a representation $\Phi$ and then a hypothesis $h \in \mathcal{H}$ to minimize:
+\begin{equation}
+    B_{H, \alpha, \gamma}(\Phi, h) = \frac{1}{n}\sum_{i = 1}^n \left|h(\Phi(x_i), t_i)-y_i^F\right|+ \alpha \operatorname{disc}_H(\hat{P_{\Phi}^F}, \hat{P_{\Phi}^{CF}}) + \frac{\gamma}{n}\sum_{i=1}^n \left|h(\Phi(x_i), 1-t_i) - y_{j(i)}^F \right|,
+\end{equation}
+where $t_i$ denotes the (factual) treatment assigned to context $x_i$ in the observed data, $y_i$ the corresponding factual outcomes, $\operatorname{disc}$ a probability discrepancy metric, $\hat{P_{\Phi}^F}$ the empirical distribution for $P_{\Phi}^F$ (with $\hat{P_{\Phi}^{CF}}$ similarly defined), $n$ the number of samples, and $j(i)$ the index of the context most similar to $x_i$ but that received the opposite treatment.
+The hyperparameters $\mathcal{\alpha, \gamma}$ control the relative weights of each term in the objective function.
+The first term in the objective function is the empirical risk of the factual outcomes in the learned representation. The second term measures the empirical discrepancy--a measure of maximum distance--between the control and treatment distributions in the representation space. (In order to have a closed form expression of the empirical discrepancy, the authors restrict the hypothesis space to linear classifiers.)
+The third term captures the risk of the counterfactual, as measured by the corresponding ``nearest neighbor'' context's outcome. 
+%The empirical discrepancy is a measure of the maximum (over all possible hypotheses) distance between the expected loss of the factual distribution in the representation space and the counterfactual distribution in the representation space.
+
+In \cite{shalit2017estimating}, the authors estimate the individual treatment effect and propose more flexible versions of the algorithms in \cite{johansson2016learning}, including algorithms involving non-linear hypotheses. 
+\cite{shalit2017estimating} also moves from \cite{johansson2016learning}'s two-stage approach to learning $\Phi$ and $h$ to instead conducting the learning in one stage.
+
+Instead of using a measure of discrepancy as in \cite{johansson2016learning}, the new approach also uses a more sophisticated measure of distance between distributions, the integral probability metrics (IPMs). The IPM is a class of metrics between probability densities $p$, $q$, defined for some function family $G$ as
+\begin{equation}
+    IPM_G(p,q) := sup_{g \in G} \left| \int_S g(s)(p(s)-q(s))ds\right|.
+\end{equation}
+The authors compare two function families and IPMs: the family of 1-Lipshitz function with the Wasserstein distance as the IPM and the family of norm-1 reproducing kernel Hilbert space (RKHS) functions with the MMD metric as the IPM. The use of the IPM allows for non-linear hypotheses to be considered in $\mathcal{H}$. The IPM also enables the authors in \cite{shalit2017estimating} to give a more informative bound on the counterfactual error than in \cite{johansson2016learning}. The bound in Theorem 1 of \cite{shalit2017estimating} is defined for the expected Precision in Estimation of Heterogeneous Effect (PEHE), which measures the accuracy in estimating both the factual and counterfactual responses. 
+
+The central assumption of both \cite{johansson2016learning} and \cite{shalit2017estimating} is strong ignorability, which requires independence of potential outcomes from observed treatments once conditioned on $x$.
+Mathematically, the requirement is that $(Y_1, Y_0) \indep t|x$ and $0< p(t=1|x) <1$ for all $x \in \mathcal{X}$.
+
+\section{Method and Approach}
+
+Our eventual goal is to generalize the theory in \cite{shalit2017estimating} for the ternary case and subsequently modify the algorithms in \cite{johansson2016learning} and \cite{shalit2017estimating} accordingly. 
+We expect to make substantial, though not complete, progress towards this goal during the project period.
+Simultaneously, we will replicate the results of \cite{shalit2017estimating} on their IHDP (Infant Health and Development Program) data, and run their algorithm on our own simulated dataset (see Section~\ref{subsec:dataset} below) to establish a baseline for comparison with our ternary algorithm (once, likely after the project period, it has been designed).
+
+\subsection{Theory and Algorithm}
+
+We will generalize (some subset of) the key lemmas and theorems presented in \cite{shalit2017estimating} and then develop an algorithm for ternary counterfactual inference based on these theorems.
+We have already generalized Lemma A4, as we will discuss in Section~\ref{subsec:progress-theory}.
+We will next seek to generalize Lemma A5; with some work, Theorem 1 will then follow from both Lemmas A4 and A5.
+If we have time, we will then continue by generalizing Lemma A8 and then Theorem 2 (which depends on Lemma A8).
+The last step would be to generalize Lemma A11 and then Theorem 3 (which depends on Lemma A11).
+If we are able to generalize all three theorems, then our algorithmic approach to counterfactual inference should fall right out of the theory, as it did in \cite{johansson2016learning} and \cite{shalit2017estimating}.
+
+\subsection{Dataset}
+\label{subsec:dataset}
+We will employ simulated data from the EPA AVERT model \cite{epa2017avert}. 
+AVERT uses a Monte Carlo model on historical power grid data to simulate the relationship between electricity generation and power system interventions at the hourly level for various regions of the United States.
+We will run this model for the Mid-Atlantic region, obtaining results for changes in hourly generation by -1 MW or 1 MW (two treatments) as well as baseline results reflecting no changes in generation (control).
+By doing so, we will generate a complete dataset--with control and both treatment results--for each hour within a specified time horizon (one or more years).
+To then simulate an incomplete observational dataset (as is often found in real world applications), we will randomly assign each hour of the year to a treatment or control group, thus partitioning the dataset for the purposes of our analysis.
+
+\section{Midterm Results}
+\subsection{Theoretical Results}
+\label{subsec:progress-theory}
+We have proved two lemmas which are key to the central theorem of \cite{shalit2017estimating} for the ternary case:
+
+\begin{definition}
+$u_{i} = p(t = i)$, for treatments $i= 1, 2, 3$.
+\end{definition}
+
+The following lemma is a generalization of Lemma A3 in \cite{shalit2017estimating} for the ternary case.
+\begin{lemma}
+Let $\epsilon_{CF}$ be the counterfactual error and $l$ a loss function as defined in \cite{shalit2017estimating}. Then:
+\[
+\epsilon_{CF} = \Sigma_{i=1}^{3}\Sigma_{j \neq i}u_{j}\int_{X}l_{h, \Theta}(x, i)p^{t= j}(x)dx
+\]
+\end{lemma}
+\begin{proof}
+The proof follows directly from generalizations of Definitions A4 and A6 in \cite{shalit2017estimating}, which we will describe in more detail in the final report.
+\end{proof}
+
+The following lemma is a generalization of Lemma A4 in \cite{shalit2017estimating} for the ternary case.
+\begin{lemma}
+Let $G$ be a family of functions of $g : \mathcal{R} \rightarrow \mathcal{R}$. Let $h: \mathcal{R} \times \{1, 2, 3\} \rightarrow\mathcal{Y}$ be a hypothesis. Assume that there exists a constant $B_{\Theta} > 0$ such that for $t = 1, 2, 3$, the function $g_{\Theta, h}(r, t) := \frac{1}{B_{\Theta}}l_{h, \Theta}(\Phi(r), t) \in G$. Then 
+
+\[
+\epsilon_{CF}(h, \Theta) \leq \Sigma_{i = 1}^{3}(1 - u_{i})\epsilon_{F}^{t=i}(h, \Theta) + 2B_{\Theta}\Sigma_{i, j, s \neq i, s\neq j}(1-u_{s})IPM_{G}(P_{\Theta}^{t = i}, P_{\Theta}^{t= j})
+\]
+\end{lemma}
+
+\begin{proof} 
+\begin{align}
+    \epsilon_{CF} - \Sigma_{i=1}^{3}(1-u_{i})\epsilon_{F}^{t=i}(h, \Theta)
+    &= \Sigma_{i = 1}^{3}\Sigma_{j\neq i}u_{j}\int_{X}l_{h, \Theta}(x, i)(p^{t=j}(x) - p^{t = i}(x))dx \\
+    &= \Sigma_{i=1}^{3}\Sigma_{j\neq i}u_{j}\int_{R}l_{h, \Theta}(x, i)(P_{\Theta}^{t = j} - P_{\Theta}^{t = i})dx \\
+    &= B_{\Theta}\Sigma_{i=1}^{3}\Sigma_{j\neq i}u_{j}\int_{R}\frac{1}{B_{\Theta}}l_{h, \Theta}(x, i)(P_{\Theta}^{t = j} - P_{\Theta}^{t = i})dx \\
+    &= B_{\Theta} \Sigma_{i=1}^{3}\int_{R}\frac{1}{B_{\Theta}}l_{h, \Theta}(x, i)\Sigma_{j\neq i}u_{j}(P_{\Theta}^{t = j} - P_{\Theta}^{t = i})dx \\
+    &\leq 
+    2B_{\Theta}\Sigma_{i, j, s\neq i, s\neq j}(1-u_{s})IPM(P_{\Theta}^{t=i}, P_{\Theta}^{t= j}),
+\end{align}
+
+where $(3)$ is by Lemma 4.1. $(4)$ is by change of variables, and $(7)$ follows from the assumption on $g_{\Theta, h}$ and the definition of the $IPM$ metric.
+\end{proof}
+
+\subsection{Experimental Results}
+We have successfully updated the authors of \cite{johansson2016learning, shalit2017estimating}'s original implementation of counterfactual regression (CFR) by learning balanced representations\footnote{https://github.com/clinicalml/cfrnet} so that it is compatible with TensorFlow 1.0. 
+We ran two simple experiments on a subset of the Infant Health and Development Program (IHDP) dataset, compiled by \cite{hill2011bayesian}.
+In particular, we trained a deep network with the same architecture as used in \cite{shalit2017estimating} on a subset of the IHDP dataset, with 100 training samples and 100 test samples.
+
+Our two experiments differed only with respect to one configuration parameter, $\alpha$, which, as discussed in \cite{shalit2017estimating}, controls the level of balance regularization.
+In one experiment, we used $\alpha=1.0$, which is close to the optimal $\alpha$ in the model that \cite{shalit2017estimating} calls \textit{CFR Wass} (CFR with Wasserstein distance).  
+In the other experiment, we used $\alpha=0$, which corresponds to the model that \cite{shalit2017estimating} calls \textit{TARNet}. Since $\alpha=0$, \textit{TARNet} reduces to learning without balance regularization.
+The results of the two experiments are summarized in Table \ref{table1}.
+Our results are reasonably similar to those presented in \cite{shalit2017estimating} given our restricted dataset, with balance regularization resulting in improved generalization.
+
+\begin{table}[h!]
+\hspace{105pt} \textbf{Train}
+\begin{center}
+\begin{tabular}{l|c|c}\hline
+                  & $\epsilon_{PEHE}$ & $\epsilon_{ATE}$  \\\hline
+\textit{TARNet}   & $0.849 \pm 0.035$ & $0.250 \pm 0.034$ \\
+\textit{CFR Wass} & $0.695 \pm 0.034$ & $0.271 \pm 0.035$ \\\hline 
+\end{tabular} \\
+\end{center}
+
+\hspace{105pt} \textbf{Test}
+\begin{center}
+\begin{tabular}{l|c|c}\hline
+                  & $\epsilon_{PEHE}$ & $\epsilon_{ATE}$  \\\hline
+\textit{TARNet}   & $0.976 \pm 0.091$ & $0.268 \pm 0.041$ \\
+\textit{CFR Wass} & $0.821 \pm 0.080$ & $0.295 \pm 0.041$ \\\hline
+\end{tabular}
+\end{center}
+\caption{Summary of results on subset of IHDP dataset.}
+\vspace{-10pt}
+\label{table1}
+\end{table}
+
+Our next step is to adapt the CFR implementation to work with EPA AVERT model data.  Toward that end, we have generated simulated data from EPA AVERT for the Mid-Atlantic region.
+
+\section{Conclusion}
+We have laid the foundations for both theoretical and empirical contributions to the field of counterfactual inference.
+In the remaining weeks of the project, we will make these contributions concrete.
+
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+
+% \section{General formatting instructions}
+% \label{gen_inst}
+
+% The text must be confined within a rectangle 5.5~inches (33~picas)
+% wide and 9~inches (54~picas) long. The left margin is 1.5~inch
+% (9~picas).  Use 10~point type with a vertical spacing (leading) of
+% 11~points.  Times New Roman is the preferred typeface throughout, and
+% will be selected for you by default.  Paragraphs are separated by
+% \nicefrac{1}{2}~line space (5.5 points), with no indentation.
+
+% The paper title should be 17~point, initial caps/lower case, bold,
+% centered between two horizontal rules. The top rule should be 4~points
+% thick and the bottom rule should be 1~point thick. Allow
+% \nicefrac{1}{4}~inch space above and below the title to rules. All
+% pages should start at 1~inch (6~picas) from the top of the page.
+
+% For the final version, authors' names are set in boldface, and each
+% name is centered above the corresponding address. The lead author's
+% name is to be listed first (left-most), and the co-authors' names (if
+% different address) are set to follow. If there is only one co-author,
+% list both author and co-author side by side.
+
+% Please pay special attention to the instructions in Section \ref{others}
+% regarding figures, tables, acknowledgments, and references.
+
+% \section{Headings: first level}
+% \label{headings}
+
+% All headings should be lower case (except for first word and proper
+% nouns), flush left, and bold.
+
+% First-level headings should be in 12-point type.
+
+% \subsection{Headings: second level}
+
+% Second-level headings should be in 10-point type.
+
+% \subsubsection{Headings: third level}
+
+% Third-level headings should be in 10-point type.
+
+% \paragraph{Paragraphs}
+
+% There is also a \verb+\paragraph+ command available, which sets the
+% heading in bold, flush left, and inline with the text, with the
+% heading followed by 1\,em of space.
+
+% \section{Citations, figures, tables, references}
+% \label{others}
+
+% These instructions apply to everyone.
+
+% \subsection{Citations within the text}
+
+% The \verb+natbib+ package will be loaded for you by default.
+% Citations may be author/year or numeric, as long as you maintain
+% internal consistency.  As to the format of the references themselves,
+% any style is acceptable as long as it is used consistently.
+
+% The documentation for \verb+natbib+ may be found at
+% \begin{center}
+%   \url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
+% \end{center}
+% Of note is the command \verb+\citet+, which produces citations
+% appropriate for use in inline text.  For example,
+% \begin{verbatim}
+%    \citet{hasselmo} investigated\dots
+% \end{verbatim}
+% produces
+% \begin{quote}
+%   Hasselmo, et al.\ (1995) investigated\dots
+% \end{quote}
+
+% If you wish to load the \verb+natbib+ package with options, you may
+% add the following before loading the \verb+nips_2016+ package:
+% \begin{verbatim}
+%    \PassOptionsToPackage{options}{natbib}
+% \end{verbatim}
+
+% If \verb+natbib+ clashes with another package you load, you can add
+% the optional argument \verb+nonatbib+ when loading the style file:
+% \begin{verbatim}
+%    \usepackage[nonatbib]{nips_2016}
+% \end{verbatim}
+
+% As submission is double blind, refer to your own published work in the
+% third person. That is, use ``In the previous work of Jones et
+% al.\ [4],'' not ``In our previous work [4].'' If you cite your other
+% papers that are not widely available (e.g., a journal paper under
+% review), use anonymous author names in the citation, e.g., an author
+% of the form ``A.\ Anonymous.''
+
+% \subsection{Footnotes}
+
+% Footnotes should be used sparingly.  If you do require a footnote,
+% indicate footnotes with a number\footnote{Sample of the first
+%   footnote.} in the text. Place the footnotes at the bottom of the
+% page on which they appear.  Precede the footnote with a horizontal
+% rule of 2~inches (12~picas).
+
+% Note that footnotes are properly typeset \emph{after} punctuation
+% marks.\footnote{As in this example.}
+
+% \subsection{Figures}
+
+% All artwork must be neat, clean, and legible. Lines should be dark
+% enough for purposes of reproduction. The figure number and caption
+% always appear after the figure. Place one line space before the figure
+% caption and one line space after the figure. The figure caption should
+% be lower case (except for first word and proper nouns); figures are
+% numbered consecutively.
+
+% You may use color figures.  However, it is best for the figure
+% captions and the paper body to be legible if the paper is printed in
+% either black/white or in color.
+% \begin{figure}[h]
+%   \centering
+%   \fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
+%   \caption{Sample figure caption.}
+% \end{figure}
+
+% \subsection{Tables}
+
+% All tables must be centered, neat, clean and legible.  The table
+% number and title always appear before the table.  See
+% Table~\ref{sample-table}.
+
+% Place one line space before the table title, one line space after the
+% table title, and one line space after the table. The table title must
+% be lower case (except for first word and proper nouns); tables are
+% numbered consecutively.
+
+% Note that publication-quality tables \emph{do not contain vertical
+%   rules.} We strongly suggest the use of the \verb+booktabs+ package,
+% which allows for typesetting high-quality, professional tables:
+% \begin{center}
+%   \url{https://www.ctan.org/pkg/booktabs}
+% \end{center}
+% This package was used to typeset Table~\ref{sample-table}.
+
+% \begin{table}[t]
+%   \caption{Sample table title}
+%   \label{sample-table}
+%   \centering
+%   \begin{tabular}{lll}
+%     \toprule
+%     \multicolumn{2}{c}{Part}                   \\
+%     \cmidrule{1-2}
+%     Name     & Description     & Size ($\mu$m) \\
+%     \midrule
+%     Dendrite & Input terminal  & $\sim$100     \\
+%     Axon     & Output terminal & $\sim$10      \\
+%     Soma     & Cell body       & up to $10^6$  \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+% \section{Final instructions}
+
+% Do not change any aspects of the formatting parameters in the style
+% files.  In particular, do not modify the width or length of the
+% rectangle the text should fit into, and do not change font sizes
+% (except perhaps in the \textbf{References} section; see below). Please
+% note that pages should be numbered.
+
+% \section{Preparing PDF files}
+
+% Please prepare submission files with paper size ``US Letter,'' and
+% not, for example, ``A4.''
+
+% Fonts were the main cause of problems in the past years. Your PDF file
+% must only contain Type 1 or Embedded TrueType fonts. Here are a few
+% instructions to achieve this.
+
+% \begin{itemize}
+
+% \item You should directly generate PDF files using \verb+pdflatex+.
+
+% \item You can check which fonts a PDF files uses.  In Acrobat Reader,
+%   select the menu Files$>$Document Properties$>$Fonts and select Show
+%   All Fonts. You can also use the program \verb+pdffonts+ which comes
+%   with \verb+xpdf+ and is available out-of-the-box on most Linux
+%   machines.
+
+% \item The IEEE has recommendations for generating PDF files whose
+%   fonts are also acceptable for NIPS. Please see
+%   \url{http://www.emfield.org/icuwb2010/downloads/IEEE-PDF-SpecV32.pdf}
+
+% \item \verb+xfig+ "patterned" shapes are implemented with bitmap
+%   fonts.  Use "solid" shapes instead.
+
+% \item The \verb+\bbold+ package almost always uses bitmap fonts.  You
+%   should use the equivalent AMS Fonts:
+% \begin{verbatim}
+%    \usepackage{amsfonts}
+% \end{verbatim}
+% followed by, e.g., \verb+\mathbb{R}+, \verb+\mathbb{N}+, or
+% \verb+\mathbb{C}+ for $\mathbb{R}$, $\mathbb{N}$ or $\mathbb{C}$.  You
+% can also use the following workaround for reals, natural and complex:
+% \begin{verbatim}
+%    \newcommand{\RR}{I\!\!R} %real numbers
+%    \newcommand{\Nat}{I\!\!N} %natural numbers
+%    \newcommand{\CC}{I\!\!\!\!C} %complex numbers
+% \end{verbatim}
+% Note that \verb+amsfonts+ is automatically loaded by the
+% \verb+amssymb+ package.
+
+% \end{itemize}
+
+% If your file contains type 3 fonts or non embedded TrueType fonts, we
+% will ask you to fix it.
+
+% \subsection{Margins in \LaTeX{}}
+
+% Most of the margin problems come from figures positioned by hand using
+% \verb+\special+ or other commands. We suggest using the command
+% \verb+\includegraphics+ from the \verb+graphicx+ package. Always
+% specify the figure width as a multiple of the line width as in the
+% example below:
+% \begin{verbatim}
+%    \usepackage[pdftex]{graphicx} ...
+%    \includegraphics[width=0.8\linewidth]{myfile.pdf}
+% \end{verbatim}
+% See Section 4.4 in the graphics bundle documentation
+% (\url{http://mirrors.ctan.org/macros/latex/required/graphics/grfguide.pdf})
+
+% A number of width problems arise when \LaTeX{} cannot properly
+% hyphenate a line. Please give LaTeX hyphenation hints using the
+% \verb+\-+ command when necessary.
+
+% \subsubsection*{Acknowledgments}
+
+% Use unnumbered third level headings for the acknowledgments. All
+% acknowledgments go at the end of the paper. Do not include
+% acknowledgments in the anonymized submission, only in the final paper.
+
+
+% References follow the acknowledgments. Use unnumbered first-level
+% heading for the references. Any choice of citation style is acceptable
+% as long as you are consistent. It is permissible to reduce the font
+% size to \verb+small+ (9 point) when listing the references. {\bf
+%   Remember that you can use a ninth page as long as it contains
+%   \emph{only} cited references.}
+% \medskip
+
+% \small
+
+% [1] Alexander, J.A.\ \& Mozer, M.C.\ (1995) Template-based algorithms
+% for connectionist rule extraction. In G.\ Tesauro, D.S.\ Touretzky and
+% T.K.\ Leen (eds.), {\it Advances in Neural Information Processing
+%   Systems 7}, pp.\ 609--616. Cambridge, MA: MIT Press.
+
+% [2] Bower, J.M.\ \& Beeman, D.\ (1995) {\it The Book of GENESIS:
+%   Exploring Realistic Neural Models with the GEneral NEural SImulation
+%   System.}  New York: TELOS/Springer--Verlag.
+
+% [3] Hasselmo, M.E., Schnell, E.\ \& Barkai, E.\ (1995) Dynamics of
+% learning and recall at excitatory recurrent synapses and cholinergic
+% modulation in rat hippocampal region CA3. {\it Journal of
+%   Neuroscience} {\bf 15}(7):5249-5262.
+
+\end{document}
+
+
+
+
+

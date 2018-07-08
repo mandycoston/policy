@@ -1,0 +1,34 @@
+\section{Contextual Bandit Approaches for Offline Policy Evaluation} \label{bandits}
+%add definitions of nonstationary and stationary policies
+Contextual bandits algorithms specify policies in settings where we need to make sequential decisions and where rewards are a function of observed contexts and actions taken by the decision-maker. Formally, we consider the below setting: 
+At time $k$, 
+\begin{itemize}
+    \item A context is specified by a vector $x_k \in \mathcal{X}.$
+    \item An action $a_k$ is chosen from $\mathcal{A}$ based on $x_k$ and the past history $\{z_i\}_{i=1}^{k-1}$.
+    \item A reward $r_k \in [0,1]$ for taking action $a_k$ in context $x_k$ is then assigned. 
+    \item A new history record $z_k = (x_k, a_k, r_k)$ is formed.
+\end{itemize}
+% do we have the positivity assumption somewhere 
+Traditional assumptions in this setting include \cite{dudik2014doubly}: i) Contexts $x_1, ..., x_N$ are drawn i.i.d. from a distribution; ii) $|\mathcal{A}|$ is finite; iii) the distribution of the reward $R|A, X$ is unknown but does not change over time. A policy is a function, defined as $\pi: \mathcal{X} \times \mathcal{A} \to [0,1]$ where $\pi(a|x)$ is the probability of assigning action $a$ to context $x$. In the clinical example, the policy is how doctors assign patients treatment; the decision-maker is the doctor; the action is the treatment; the context is the patient's features including demographic and health information; the reward is patient outcomes (such as recovery from disease).~\cite{dudik2014doubly} assumes that there is an underlying policy $\pi_z$ that the agent follows when producing the history.
+
+With this,~\cite{dudik2014doubly} defines the goal of offline policy evaluation. Given the history $\{z_i\}_{i=1}^N$ and a new policy $\pi$, we estimate the value of the new given policy on the set of encountered contexts:
+$$ V(\pi, \mathcal{X}) = \mathbf{E}_{X}\mathbf{E}_{A}\mathbf{E}_{R}[R].$$
+
+Note that the expectation is taken over $X$, which means that the value of a policy is evaluated on average over the distribution of contexts. That is, $V(\pi, \mathcal{X})$ is evaluating the average treatment effect (ATE) of the given policy $\pi$, from which we sample an action given a context. %Here, we provide a brief summary on the doubly robust estimator people used in estimating ATE in contextual bandit. 
+
+There are two standard methods in estimating $V(\pi, \mathcal{X})$, namely the direct method (DM) and inverse propensity score (IPS)~\cite{dudik2014doubly}. The direct method uses below estimator:
+$$\widehat{V}_{DM}(\pi, \mathcal{X}) = \frac{1}{N}{\sum_{k=1}^N}\sum_{a \in \mathcal{A}} \pi(a|x_k)\hat{r}(x_k, a),$$ where $\hat{r}(x_k, a)$ is an estimator of $\mathbf{E}_{R}[R|X,A]$ which can be estimated using standard nonparametric regression methods. A drawback to DM is that since $\hat{r}$ has no information on $\pi$, it might only estimate well at places that are not important to $\pi$.The second approach defines inverse propensity score $\frac{\pi(a|x)}{\pi_{z}(a|x)}$ where $\pi$ is the new given policy and $\pi_{z}$ is the history collecting policy. The estimator is then defined as
+$$\widehat{V}_{IPS} (\pi, \mathcal{X}) = \frac{1}{N}\sum_{k=1}^N \sum_{a \in \mathcal{A}}\mathbb{I}\{A_k = a\} \frac{\pi(a|x_k)}{\hat{\pi}_{z}(a|x_k)} \cdot r(x_k, a),$$ where $\hat{\pi}_{z}(a|x_k)$ is an estimate of $\pi_{z}(a|x_k)$ and $r(x_k, a_k)=r_k$. The doubly robust estimator in \cite{dudik2014doubly} combines the two:
+$$\widehat{V}_{DR} (\pi, \mathcal{X}) = \frac{1}{N}\sum_{k=1}^N \left[ \sum_{a \in \mathcal{A}} \pi(a|x_k)\hat{r}(x_k, a) + \sum_{a \in \mathcal{A}} \mathbb{I}_{\{A_k = a\}}\frac{\pi(a|x_k)}{\hat{\pi}_{z}(a|x_k)} \cdot (r(x_k, a) - \hat{r}(x_k, a))\right].$$
+
+
+
+%\cite{dudik2014doubly} established finite-sample error bound for $\widehat{V}_{DM}$. With high probability, and under some standard assumptions, $|\widehat{V}_{DR} - V| \leq O(\frac{1}{n}).$ (Need to update)
+
+
+$\widehat{V}_{DR} (\pi, \mathcal{X})$ is unbiased if either $\hat{r}(x_k, a)$ or $\hat{\pi}_{z}(a|x_k)$ is unbiased. However, we note a major limitation to the average treatment effect $V_{DR} (\pi, \mathcal{X})$: it does not tell us in which context $\pi$ does well and where it might do poorly. To do so, we would like to estimate the heterogeneous treatment effect of the policy in different subset $\mathcal{S}$ of the contexts, i.e. $V_{DR} (\pi, \mathcal{S})= \mathbf{E}_{X_\mathcal{S}} \mathbf{E}_{A}\mathbf{E}_{R} [R].$ This estimator is valid for any subset $\mathcal{S}$ such that the size of $\mathcal{S}$ goes to infinity as $N$ goes to infinity.
+ 
+ %At the extreme, $\mathcal{S}$ can consist only a single context and  $V_{DR} (\pi, \mathcal{S})$ will be the treatment effect under that specific context.
+
+%To our best knowledge, such an offline heterogeneous policy evaluation in contextual bandit has not been done yet; however, such methods are of recent interest in causal inference literature.
+

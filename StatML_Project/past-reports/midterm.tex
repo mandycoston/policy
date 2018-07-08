@@ -1,0 +1,114 @@
+\documentclass{article}
+
+\usepackage[final]{nips_2017}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage[ruled,linesnumbered]{algorithm2e} % algorithms
+\usepackage[]{amsmath}
+\usepackage{graphicx}
+
+\usepackage{blindtext}
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+
+\title{%Midterm Update:\\
+Offline Heterogeneous Policy Evaluation for Contextual Bandits: A Causal Approach}
+
+\author{
+  Amanda Coston \quad Liu Leqi\\
+  Machine Learning Department\\
+  Carnegie Mellon University\\
+  Pittsburgh, PA 15213 \\
+  \texttt{\{acoston, leqil\}@cs.cmu.edu} \\
+}
+\begin{document}
+\maketitle
+\section{Introduction}
+In many situations where we have the task of choosing one of two or more potential actions, we want to understand the difference in payoffs between potential actions. In the causal inference literature, this is often referred to as treatment effect--i.e. the outcome difference when taking the treatment versus the control. In contextual bandits, this is known as offline policy evaluation. That is, given a history of observations, we would like to estimate the expected total reward for a new given policy. 
+
+ It is intuitive to see the connection between contextual bandits and traditional causal inference settings if we consider a particular application. In a clinical setting, our policy is how we assign a particular medical treatment to patients. Estimating the treatment effect is equivalent to assessing the policy.
+
+Currents methods for offline policy evaluations concern themselves with course summaries, namely an average over a distribution of contexts. \cite{dudik2014doubly} proposed a doubly robust offline policy evaluation that assesses the policy on average over a distribution of contexts. This estimator has desirable statistical properties--we only need one of the nuisance parameters to be accurate and we can get an asymptotically $\sqrt{n}$ consistent estimator using nonparametric techniques. However the limitation of this approach is that it does not tell us where/why the policy is performing well (or poorly).
+
+Recent advances in causal inference have moved beyond estimating the average treatment effect (ATE) to estimating heterogeneous treatment effects (HTE), which considers the treatment effect for a particular individual as described by a set of features/covariates. These methods tell us the covariates (equivalently, contexts in the bandit setting) where the treatment works well and where the treatment does not work or even performs poorly. It is still an open question whether there exists a doubly robust estimator for HTE, but it is instructive nonetheless to use these methods to understand where our treatment/policy is performing well.
+
+In this paper we establish the similarity of estimating treatment effects and offline policy evaluation, survey their existing methods, and propose how recent advances in estimating HTE can be used to improve offline policy evaluation in a bandit setting. These methods are important in applications ranging from personalized medicine to social policy-making to online advertising.
+
+% Let's save these definitions for the section below so that we can define things like action, etc properly? But feel free to add to the medical example above to make the connection clear. "the patient’s current characteristics are contextual infor- mation, a treatment is an action, and a DTR is a policy. Similar to contextual bandits, the quantity of interest in DTR can be expressed by a numeric reward signal related to the clinical outcome of a treatment." 
+%Hence, we would like to apply heterogeneous treatment effect estimation regime to contextual bandits. Such a heterogeneous policy evaluation is important because...
+
+
+\section{Contextual Bandit Approaches for Offline Policy Evaluation}
+Contextual bandit studies sequential decisions in environments where rewards are a function of observed contexts and actions taken by the decision-maker. Formally, we consider the below setting: 
+At time $k$, 
+\begin{itemize}
+    \item A context is specified by a vector of covariates $x_k \in \mathcal{X}.$
+    \item An action $a_k$ is chosen from $A$ based on $x_k$ and the past history $\{z_i\}_{i=1}^{k-1}$.
+    \item A reward $r_k \in [0,1]$ for taking action $a_k$ in context $x_k$ is then revealed. 
+    \item A new history record $z_k = (x_k, a_k, r_k)$ is formed.
+\end{itemize}
+Traditional assumptions in this setting include \cite{dudik2014doubly}: 1) Contexts $x_1, ..., x_T$ are drawn i.i.d. from a distribution $D_x$; 2) $|A|$ is finite; 3) the distribution $D_r$ of the reward $R|A, X$ is unknown but does not change over time. A policy is a function, defined as $\pi: \mathcal{X} \times A \to [0,1]$ where $\pi(x, a) = \mathbb{P}(\text{taking action } a \text{ in context } x).$ In the clinical example, the policy is how doctors assign patients treatment; the decision-maker is the doctor; the action is the treatment; the context is the patient's features including demographic and health information; the reward is patient outcomes (such as recovery from disease). 
+
+With this, we can define the goal of offline policy evaluation. Given the history $\{z_i\}_{i=1}^T$ and a new policy $\pi$, we want to estimate:
+$$ V(\pi) = \mathbb{E}_{x \sim D_x}\mathbb{E}_{a \sim \pi(\cdot|x)}\mathbb{E}_{r \sim D_r(\cdot | x, a)}[r].$$
+
+Note that the expectation is taken over $X$, which means that the value of a policy is evaluated on average over the distribution of contexts. That is, $V(\pi)$ is evaluating the average treatment effect (ATE) of the given policy $\pi$. %Here, we provide a brief summary on the doubly robust estimator people used in estimating ATE in contextual bandit. 
+
+There are two standard methods in estimating ATE, namely the direct method (DM) and inverse propensity score (IPS). The direct method uses the below estimator:
+$$\widehat{V}_{DM} = \frac{1}{T}{\sum_{k=1}^T}\sum_{a \in A}\pi(a|x_k)\hat{r}(x_k, a),$$ where $\hat{r}(x_k, a) = \mathbb{E}_{D_r}[r|x,a]$ can be estimated using standard nonparametric regression methods. A drawback to DM is that since $\hat{r}$ has no information on $\pi$, it might only estimate well at places that are not important to $\pi$.The second approach defines inverse propensity score $\frac{\pi(a|x)}{\pi_{z}(a|x)}$ where $\pi$ is the new given policy and $\pi_{z}$ is the history collecting policy. The estimator is then defined as
+$$\widehat{V}_{IPS} = \frac{1}{T}\sum_{k=1}^T\frac{\pi(a_k|x_k)}{\hat{\pi}_{z}(a_k|x_k)} \cdot r_k,$$ where $\hat{\pi}_{z}(a|x)$ is an estimate of $\pi_{z}(a|x)$. The doubly robust estimator in \cite{dudik2014doubly} connects the two:
+$$\widehat{V}_{DR} = \frac{1}{T}\sum_{k=1}^T \left[ \sum_{a \in A} \pi(a|x_k)\hat{r}(x_k, a) + \frac{\pi(a_k|x_k)}{\hat{\pi}_{z}(a_k|x_k)} \cdot (r_k - \hat{r}(x_k, a_k))\right].$$
+
+\cite{dudik2014doubly} established finite-sample error bound for $\widehat{V}_{DM}$. With high probability, and under some standard assumptions, $|\widehat{V}_{DR} - V| \leq O(\frac{1}{n}).$
+
+
+We note a major limitation to ATE: ATE does not tell us in which context $\pi$ does well and where it might do poorly. To do so, we would like to estimate the heterogeneous treatment effect of the policy in different context, i.e. $ V(\pi(x)) = \mathbb{E}_{a \sim \pi(\cdot|x)}\mathbb{E}_{r \sim D_r(\cdot | x, a)}[r].$ To our best knowledge, such an offline heterogeneous policy evaluation in contextual bandit has not been done yet; however, such methods are of recent interest in causal inference literature.
+
+\section{Causal Inference Methods for Estimating Heterogeneous Treatment Effects (HTE)}
+The classical approach for estimating HTE matches \textit{k}-nearest neighbors to compute the treatment effect; however, this approach is prone to a curse of dimensionality in high-dimensional settings and it is susceptible to irrelevant covariates. Using a fixed $k$ will also yield an inconsistent estimator. `Causal forests', a modification of random forests to the causal setting, resolve these limitations \cite{wager2017estimation}. In contrast to methods like kernel regression which use a fixed similarity function to determine $k$, as an adaptive nearest neighbors method, random forests adaptively learn the similarity function. %Athey and Wager show that causal forests are a consistent estimator with an asymptotically normal limiting distribution. 
+
+Other potentially promising approaches for estimating HTE use nonparametric Bayesian techniques and methods from representation learning. One approach involves using Bayesian nonparametric modeling to model a ``response surface'' for treatment effects \cite{hill2011bayesian, green2012modeling}. Bayesian additive regression trees use a Bayesian ensemble method based on trees \cite{chipman2010bart}. A non-Bayesian approach applies methods from representation learning and deep latent variable models \cite{shalit2017estimating} \cite{louizos2017causal}. Since we are interested in settings with large amounts of raw text/image data such as personalized medicine, we focus on causal forests, which have the best guarantees for high dimensional settings.
+\subsection{Causal Forests}
+We have data $Z = (X, Y, W)$ distributed iid from $P$ where $X$ is a vector of $d$ covariates, $W \in \{0,1\}$ is a binary treatment, and $Y \in \mathbb{R}$ is the observed outcome. Our analysis will use the potential outcomes framework, where $Y^w$ denotes the outcome we would observe if the treatment assigned were $w$. 
+Let $\tau(x) = \mathbb{E} \big[ Y^1 - Y^0 |X = x]$ designate the heterogeneous treatment effect. The goal is to produce an estimate $\hat{\tau}(x)$. 
+We assume no unmeasured confounding: $(Y^1, Y^0) \indep W | X$.
+
+The leaves of causal forests produce estimates of the treatment effect by averaging the difference in outcomes between the treatment groups in that leaf. Let $L(x)$ denote the leaf that $x$ falls into for a given tree. Then we estimate 
+\begin{equation}
+    \hat{\tau}(x) = \frac{1}{|\{i: W_i =1, X_i \in L \}} \sum_{i: W_i =1, X_i \in L} Y_i - \frac{1}{|\{i: W_i =0, X_i \in L \}} \sum_{i: W_i =0, X_i \in L} Y_i
+\end{equation}
+for a given tree and then we average across all trees in the forest. The intuition here is that we think of each leaf as a conditionally randomized experiment. 
+The recursive partitioning method for causal trees chooses splits to maximize the variance in $\hat{\tau}(X)$\cite{athey2016recursive}. Since regression trees compute predictions $\hat{\mu}$ by averaging, we have that 
+\begin{equation}
+    \sum_i (\hat{\mu}(X_i) - Y_i)^2 = \sum_i Y_i^2 - \sum_i \hat{\mu}(X_i)^2
+\end{equation}
+Athey and Wager demonstrate the forest must be \textit{honest} in order to achieve consistency. Honesty requires that each training example is used to either determine the split or estimate the predictions in the leaves, but not both. The theoretical guarantees are valid only for methods that use subsamples of the training set to grow the trees and where the splitting rule is honest.
+Causal forests are consistent estimators of $\tau(x)$ assuming positivity and Lipschitz continuity on the conditional mean functions $\mathbb{E}[ Y^0 |X]$ and $\mathbb{E}[ Y^1 |X]$. Causal forests are asymptotically normal and unbiased: \\$(\hat{\tau}(x) - \tau(x)) / \sqrt{Var(\hat{\tau}(x))}  \rightsquigarrow \mathcal{N}(0,1)$
+assuming that the subsample size $s$ scales as $\Theta(n^{\beta})$ for $1- \Big( 1 + \frac{d}{\pi} \frac{log(\omega^{-1})}{log((1- \omega)^{-1})}\Big)^{-1} < \beta < 1$
+where $\omega \in (0, 0.02]$ is defined as: for each split of $m$ training examples, there are at least $\omega m$ examples on each side of the split. $\pi \in (0, 1]$ is defined as: for each split, the probability of selecting a variable is at least $\frac{\pi}{d}$ (and $d$ is the number of covariates as before).
+
+%Athey, Wager and Julie Tibshirani improve on this method with generalized random forests, which produces an estimate  of any quantity that can be written as a solution to a set of local moment equations (available in R as grf). \cite{athey2016generalized} This is an improvement and generalization of the previous work. For the causal setting, the main improvement is a computational advantage since the implementation uses gradient-based loss instead of exact loss criterion. 
+
+Fulfilling this criteria is difficult in practice; in their experiments the authors let $s= n/2$ which does not satisfy the above criteria. Cross-validation cannot be used to choose this parameter since we do not observe the treatment effect for any individual and since the usual bias-variance tradeoff does not hold in causal estimation problems; the bias largely dominates. %Additionally, it is unknown but unlikely that this is the best estimator in terms of efficiency and robustness. The minimax lower bound for heterogeneous treatment effects is an open question, but for lower-dimensional causal parameters such as average treatment effect, doubly robust estimators with an influence-function based bias correction are well known to outperform plugin nonparametric methods. Thus, it is possible there is a better estimator than this nonparametric plugin estimator for heterogeneous treatment effects. 
+Despite these limitations, we believe this is the best current approach for the high dimensional settings of interest, and we intend to modify this approach to the contextual bandit setting to better assess the policy.
+
+
+
+
+\section{Remaining Work Items}
+%we can switch the work items but we should allocate somehow
+\begin{enumerate}
+    \item \textit{Leqi Liu:} \textbf{Modify causal methods of estimating HTE for contextual bandit setting.} This should include confirmation that causal forests are the right method for the bandit setting as well as modifying the assumptions and the algorithm appropriate for the bandit setting. 
+    \item \textit{Amanda Coston:} \textbf{Propose methods for visualization and exploration of HTE in contextual bandit settings.} These methods should inform on how we identify sub-groups with extreme policy impact (i.e. for whom the policy extremely benefits or harms the outcome). 
+    \item \textit{Both:} \textbf{Analyze if the sequential aspect of bandit problems influence the estimator of HTE for contextual bandits.} 
+\end{enumerate}
+
+\bibliographystyle{plain}
+\bibliography{citations}
+\end{document}

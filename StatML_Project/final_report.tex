@@ -1,0 +1,53 @@
+\documentclass{article}
+
+\usepackage[final]{nips_2017}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage[ruled,linesnumbered]{algorithm2e} % algorithms
+\usepackage[]{amsmath}
+\usepackage{graphicx}
+\usepackage[english]{babel}
+\usepackage{color}
+
+
+
+\usepackage{blindtext}
+\newcommand{\indep}{\rotatebox[origin=c]{90}{$\models$}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{definition}[theorem]{Definition}
+\newenvironment{proof}{\paragraph{Proof:}}{\hfill$\square$}
+
+\title{%Midterm Update:\\
+Offline Heterogeneous Policy Evaluation for Contextual Bandits: A Causal Approach}
+
+\author{
+  Amanda Coston \quad Liu Leqi\\
+  Machine Learning Department\\
+  Carnegie Mellon University\\
+  Pittsburgh, PA 15213 \\
+  \texttt{\{acoston, leqil\}@cs.cmu.edu} \\
+}
+\begin{document}
+\maketitle
+\begin{abstract}
+    Offline policy evaluation is integral to understanding how a policy will perform before investing time and money in online evaluation. Whereas previous work has investigated methods for computing how well a policy does on average (i.e. value function) in an offline evaluation, this paper goes further by proposing and analyzing methods for offline policy evaluation on a more granular, subgroup-specific scale. We propose a doubly robust estimator of $\mathcal{S}$-specific value function, where $\mathcal{S}$ defines a subset of our covariate space $\mathcal{X}$. Our estimator is robust to parametric mispecification in either of the nuisance functions. In a nonparametric setting, our estimator is $\sqrt{n}$-consistent and asymptotically normal under assumptions of sample-splitting and $n^{1/4}$ convergence in the error terms of the nuisance functions. This estimator can be used to compute on the $\mathcal{S}$-specific value function of a subgroup that is of a priori interest (such as a vulnerable or legally protected population); alternatively, we propose a tree-based method to empirically find the subgroups that are most affected under the proposed policy. We show how rejection sampling can be used with our doubly robust estimator to evaluate nonstationary (or online) policies. Evaluating $\mathcal{S}$-specific value functions is useful in assessing how fair a policy is in any setting where we have a randomized policy assignment conditional on covariates, including clinical trials as well as traditional contextual bandit applications such as online advertising and content recommendations.
+\end{abstract}
+\input{sections/introduction.tex}
+\input{sections/contextual-bandit.tex}
+%\input{sections/hte.tex}
+\input{sections/dr-estimator.tex}
+\input{sections/finding_subgroups.tex}
+\input{sections/nonstationary.tex}
+\input{sections/conclusions.tex} 
+\bibliographystyle{plain}
+\bibliography{citations}
+\end{document}

@@ -1,0 +1,15 @@
+\section{Finding Maximally Advantaged and Disadvantaged Subgroups} \label{finding}
+For certain applications, we may have a pre-defined subgroup of interest, such as a vulnerable or protected population. In other contexts, we may want to know which subgroup out of all possible subgroups benefit most and which suffer most under a proposed policy. We want to partition the feature space such that we maximize the variance in the $\mathcal{S}$-specific effects of the resulting subgroups. This is exactly what a regression tree using the estimated conditional value function as the outcome  does (in a local, greedy manner) since minimizing mean squared error on the split is equivalent to maximizing variance in the estimates from the split \cite{wager2017estimation}. Let $\widehat{V}(X_i)$ be the estimate of value function for the training point $X_i$ using $\widehat{V}_{DR}(\pi, \mathcal{S})$ (defined in section \ref{drest}). Let $\hat{\mu}(X_i)$ be the prediction of the tree. Since 
+
+\begin{equation*}
+\sum_{i=1}^N \hat{\mu}(X_i) = \sum_{i=1}^N \widehat{V}(X_i)
+\end{equation*}
+
+Then we have that the mean squared error (MSE) is 
+\begin{eqnarray*}
+&=&\frac{1}{N} \sum_{i=1}^N (\hat{\mu}(X_i) - \widehat{V}(X_i))^2 
+\\&=& \frac{1}{N}\sum_{i=1}^N \widehat{V}(X_i)^2 - \frac{1}{N} \sum_{i=1}^N \hat{\mu}(X_i)^2 
+\\&=&\frac{1}{N}\sum_{i=1}^N \widehat{V}(X_i)^2 - \text{Var}(\hat{\mu}(X_i)) - (1/N \sum_{i=1}^N \widehat{V}(X_i))^2
+\end{eqnarray*}
+
+Since  $\widehat{V}(X_i)$ for $i=1,...N$ are our fixed labels, we see that minimizing the MSE is equivalent to maximizing $\text{Var}(\hat{\mu}(X_i))$ over $i=1,...N$. This greedy splitting gives us a hierarchical and interpretable way to find subgroups that are most and least disadvantaged under the policy: if we want coarse subgroups, we look to the top of the tree; for granular subgroups, we look to the bottom of the tree. Following the feature splits gives us the exact definition of our subgroup of interest and the predicted value at that node gives us the $\mathcal{S}$-specific value function for that subgroup. Future work could investigate graph and set-partitioning methods that would provably find the most disadvantaged and advantaged subgroups.
